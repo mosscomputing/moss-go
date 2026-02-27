@@ -35,7 +35,7 @@ const (
 	// Algorithm is the signature algorithm
 	Algorithm = "ML-DSA-44"
 	// DefaultBaseURL is the default MOSS API URL
-	DefaultBaseURL = "https://moss-api-837703369688.us-central1.run.app"
+	DefaultBaseURL = "https://api.mosscomputing.com"
 )
 
 var (

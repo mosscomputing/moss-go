@@ -178,10 +178,13 @@ if err != nil {
 
 | Tier | Price | Agents | Signatures | Retention |
 |------|-------|--------|------------|-----------|
-| Free | $0 | 2 | 50/day | 24 hours |
-| Evidence | $499/mo | Unlimited | Unlimited | 30 days |
-| Defensible | $1,499/mo | Unlimited | Unlimited | 1 year |
-| Enterprise | Custom | Unlimited | Unlimited | 7 years |
+| **Free** | $0 | 5 | 1,000/day | 7 days |
+| **Pro** | $1,499/mo | Unlimited | Unlimited | 1 year |
+| **Enterprise** | Custom | Unlimited | Unlimited | 7 years |
+
+*Annual billing: $1,249/mo (save $3,000/year)*
+
+All new signups get a **14-day free trial** of Pro.
 
 ## Links
 
