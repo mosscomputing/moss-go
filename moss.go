@@ -11,10 +11,18 @@
 //	    AgentID:  "agent-finance-01",
 //	})
 //	fmt.Println(result.Envelope)
+//
+// Standalone ML-DSA-44 (no API key required):
+//
+//	kp, _ := moss.GenerateKeyPair()
+//	sig, _ := moss.Sign([]byte("hello"), kp.SecretKey)
+//	valid := moss.Verify([]byte("hello"), kp.PublicKey, sig)
+//	fmt.Println("verified:", valid)
 package moss
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -25,6 +33,8 @@ import (
 	"os"
 	"sync/atomic"
 	"time"
+
+	"github.com/cloudflare/circl/sign/mldsa/mldsa44"
 )
 
 const (
@@ -36,6 +46,11 @@ const (
 	Algorithm = "ML-DSA-44"
 	// DefaultBaseURL is the default MOSS API URL
 	DefaultBaseURL = "https://api.mosscomputing.com"
+
+	// ML-DSA-44 / FIPS 204 parameter sizes
+	PublicKeySize  = mldsa44.PublicKeySize  // 1312 bytes
+	SecretKeySize  = mldsa44.PrivateKeySize // 2560 bytes
+	SignatureSize  = mldsa44.SignatureSize  // 2420 bytes
 )
 
 var (
@@ -49,7 +64,64 @@ var (
 	ErrAgentSuspended = errors.New("moss: agent is suspended")
 	// ErrAgentRevoked is returned when agent is revoked
 	ErrAgentRevoked = errors.New("moss: agent has been revoked")
+	// ErrInvalidKeySize is returned when a key has the wrong byte length
+	ErrInvalidKeySize = errors.New("moss: invalid key size")
+	// ErrInvalidSignatureSize is returned when a signature has the wrong byte length
+	ErrInvalidSignatureSize = errors.New("moss: invalid signature size")
 )
+
+// KeyPair holds an ML-DSA-44 public/private key pair.
+type KeyPair struct {
+	PublicKey []byte // 1312 bytes (ML-DSA-44 PublicKeySize)
+	SecretKey []byte // 2560 bytes (ML-DSA-44 PrivateKeySize)
+}
+
+// GenerateKeyPair generates a new ML-DSA-44 key pair using crypto/rand.
+func GenerateKeyPair() (*KeyPair, error) {
+	pk, sk, err := mldsa44.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("moss: failed to generate ML-DSA-44 key pair: %w", err)
+	}
+	pkBytes, err := pk.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("moss: failed to marshal public key: %w", err)
+	}
+	skBytes, err := sk.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("moss: failed to marshal secret key: %w", err)
+	}
+	return &KeyPair{PublicKey: pkBytes, SecretKey: skBytes}, nil
+}
+
+// Sign signs a payload using the provided ML-DSA-44 secret key and returns
+// the 2420-byte signature.
+func Sign(payload []byte, secretKey []byte) ([]byte, error) {
+	if len(secretKey) != SecretKeySize {
+		return nil, ErrInvalidKeySize
+	}
+	var sk mldsa44.PrivateKey
+	if err := sk.UnmarshalBinary(secretKey); err != nil {
+		return nil, fmt.Errorf("moss: failed to unmarshal secret key: %w", err)
+	}
+	sig, err := sk.Sign(nil, payload, nil)
+	if err != nil {
+		return nil, fmt.Errorf("moss: ML-DSA-44 sign failed: %w", err)
+	}
+	return sig, nil
+}
+
+// Verify verifies an ML-DSA-44 signature against a payload and public key.
+// Returns true if the signature is valid, false otherwise.
+func Verify(payload []byte, publicKey []byte, signature []byte) bool {
+	if len(publicKey) != PublicKeySize || len(signature) != SignatureSize {
+		return false
+	}
+	var pk mldsa44.PublicKey
+	if err := pk.UnmarshalBinary(publicKey); err != nil {
+		return false
+	}
+	return mldsa44.Verify(&pk, payload, nil, signature)
+}
 
 // Config holds the MOSS client configuration
 type Config struct {
@@ -68,6 +140,7 @@ type Client struct {
 	config     Config
 	httpClient *http.Client
 	sequence   atomic.Int64
+	keyPair    *KeyPair // ML-DSA-44 key pair for local signing
 }
 
 // NewClient creates a new MOSS client
@@ -89,9 +162,16 @@ func NewClient(config Config) (*Client, error) {
 		httpClient = &http.Client{Timeout: config.Timeout}
 	}
 
+	// Generate a local ML-DSA-44 key pair for local signing
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		return nil, fmt.Errorf("moss: failed to generate local key pair: %w", err)
+	}
+
 	return &Client{
 		config:     config,
 		httpClient: httpClient,
+		keyPair:    kp,
 	}, nil
 }
 
@@ -216,7 +296,7 @@ func (c *Client) Sign(req SignRequest) (*SignResult, error) {
 	return c.signEnterprise(req)
 }
 
-// signLocal performs local signing without enterprise features
+// signLocal performs local signing with real ML-DSA-44
 func (c *Client) signLocal(req SignRequest) (*SignResult, error) {
 	payloadBytes, err := canonicalJSON(req.Payload)
 	if err != nil {
@@ -225,6 +305,12 @@ func (c *Client) signLocal(req SignRequest) (*SignResult, error) {
 
 	hash := sha256.Sum256(payloadBytes)
 	payloadHash := base64.RawURLEncoding.EncodeToString(hash[:])
+
+	// Sign with real ML-DSA-44
+	sig, err := Sign(payloadBytes, c.keyPair.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("moss: failed to sign payload: %w", err)
+	}
 
 	seq := c.sequence.Add(1)
 	now := time.Now().Unix()
@@ -243,7 +329,7 @@ func (c *Client) signLocal(req SignRequest) (*SignResult, error) {
 		Seq:         seq,
 		IssuedAt:    now,
 		PayloadHash: payloadHash,
-		Signature:   "", // Local signing doesn't have actual ML-DSA-44 signature
+		Signature:   base64.StdEncoding.EncodeToString(sig),
 	}
 
 	return &SignResult{
@@ -312,12 +398,17 @@ func (c *Client) signEnterprise(req SignRequest) (*SignResult, error) {
 		return nil, fmt.Errorf("moss: failed to parse response: %w", err)
 	}
 
-	// If no envelope from server, create local one
+	// If no envelope from server, create one with real ML-DSA-44 signing
 	if evalResp.Envelope == nil {
 		hash := sha256.Sum256(payloadBytes)
 		payloadHash := base64.RawURLEncoding.EncodeToString(hash[:])
-		seq := c.sequence.Add(1)
 
+		sig, err := Sign(payloadBytes, c.keyPair.SecretKey)
+		if err != nil {
+			return nil, fmt.Errorf("moss: failed to sign fallback envelope: %w", err)
+		}
+
+		seq := c.sequence.Add(1)
 		evalResp.Envelope = &Envelope{
 			Spec:        SPEC,
 			Version:     Version,
@@ -327,6 +418,7 @@ func (c *Client) signEnterprise(req SignRequest) (*SignResult, error) {
 			Seq:         seq,
 			IssuedAt:    time.Now().Unix(),
 			PayloadHash: payloadHash,
+			Signature:   base64.StdEncoding.EncodeToString(sig),
 		}
 	}
 
@@ -365,8 +457,20 @@ func (c *Client) Verify(payload any, envelope *Envelope) (*VerifyResult, error) 
 		return &VerifyResult{Valid: false, Error: errors.New("moss: payload hash mismatch")}, nil
 	}
 
-	// Note: Full ML-DSA-44 verification would require the public key
-	// For now, we verify the hash matches (offline verification)
+	// Verify the ML-DSA-44 signature
+	if envelope.Signature == "" {
+		return &VerifyResult{Valid: false, Error: ErrVerificationFailed}, nil
+	}
+
+	sigBytes, err := base64.StdEncoding.DecodeString(envelope.Signature)
+	if err != nil {
+		return &VerifyResult{Valid: false, Error: fmt.Errorf("moss: failed to decode signature: %w", err)}, nil
+	}
+
+	// Verify against the client's public key
+	if !Verify(payloadBytes, c.keyPair.PublicKey, sigBytes) {
+		return &VerifyResult{Valid: false, Error: ErrVerificationFailed}, nil
+	}
 
 	return &VerifyResult{
 		Valid:    true,

@@ -1,16 +1,61 @@
-# MOSS Go SDK
+# moss-go
 
-**Unsigned agent output is broken output.**
+MOSS SDK for Go — cryptographic signing for AI agent actions using ML-DSA-44 (FIPS 204).
 
-MOSS (Message-Origin Signing System) provides cryptographic signing for AI agents. Every output is signed with ML-DSA-44 (post-quantum), creating non-repudiable execution records with audit-grade provenance.
+## Overview
 
-## Install
+MOSS provides cryptographic signing for AI agent outputs using **ML-DSA-44** (Module-Lattice Digital Signature Algorithm), a post-quantum digital signature algorithm standardized in **NIST FIPS 204**. Every agent action is signed with a real ML-DSA-44 signature to create non-repudiable execution records with audit-grade provenance. Unsigned agent output is broken output.
+
+### ML-DSA-44 / FIPS 204 Parameter Sizes
+
+| Parameter | Size |
+|-----------|------|
+| Public key | 1312 bytes |
+| Secret key | 2560 bytes |
+| Signature | 2420 bytes |
+
+## Installation
 
 ```bash
 go get github.com/mosscomputing/moss-go
 ```
 
 ## Quick Start
+
+### Standalone ML-DSA-44 (no API key required)
+
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/mosscomputing/moss-go"
+)
+
+func main() {
+    // Generate an ML-DSA-44 key pair
+    kp, err := moss.GenerateKeyPair()
+    if err != nil {
+        panic(err)
+    }
+
+    // Sign a payload
+    payload := []byte("agent action: transfer $500")
+    sig, err := moss.Sign(payload, kp.SecretKey)
+    if err != nil {
+        panic(err)
+    }
+
+    fmt.Printf("Signature: %d bytes (ML-DSA-44)\n", len(sig))
+
+    // Verify the signature
+    valid := moss.Verify(payload, kp.PublicKey, sig)
+    fmt.Printf("Verified: %v\n", valid) // true
+}
+```
+
+### Enterprise Client (with API key)
 
 ```go
 package main
@@ -23,7 +68,6 @@ import (
 )
 
 func main() {
-    // Create client (uses MOSS_API_KEY env var if set)
     client, err := moss.NewClient(moss.Config{
         APIKey: os.Getenv("MOSS_API_KEY"),
     })
@@ -44,7 +88,6 @@ func main() {
     }
 
     fmt.Printf("Signed! Hash: %s\n", result.Envelope.PayloadHash)
-    fmt.Printf("Decision: %s\n", result.Decision)
 
     // Verify offline
     verifyResult, _ := client.Verify(
@@ -58,144 +101,90 @@ func main() {
 }
 ```
 
-## Enterprise Features
+## Features
 
-With an API key, you get policy evaluation, approval workflows, and audit logging:
+- **Cryptographic signing (ML-DSA-44 / FIPS 204)** — Post-quantum secure signatures using `cloudflare/circl/sign/mldsa/mldsa44`
+- **Standalone API** — `GenerateKeyPair()`, `Sign()`, `Verify()` without any network dependency
+- **Policy evaluation** — Server-side policy checks with allow/block/hold decisions
+- **Evidence chain linking** — Sequential signatures with payload hashes for audit trails
+- **Offline verification** — Verify signatures locally without network calls
 
-```go
-client, _ := moss.NewClient(moss.Config{
-    APIKey: os.Getenv("MOSS_API_KEY"),
-})
+## API Reference
 
-result, _ := client.Sign(moss.SignRequest{
-    Payload: map[string]any{
-        "action":    "high_risk_transfer",
-        "amount":    1000000,
-        "recipient": "external-account",
-    },
-    AgentID: "finance-bot",
-    Action:  "transfer",
-    Context: map[string]any{
-        "user_id":    "u123",
-        "department": "finance",
-    },
-})
-
-switch result.Decision {
-case "allow":
-    fmt.Println("Action allowed")
-case "block":
-    fmt.Printf("Action blocked: %s\n", result.Reason)
-case "hold":
-    fmt.Printf("Action held for approval: %s\n", result.ActionID)
-}
-```
-
-## Agent Lifecycle Management
+### Standalone Functions
 
 ```go
-// Register a new agent
-agent, _ := client.RegisterAgent(moss.RegisterAgentRequest{
-    AgentID:     "my-new-agent",
-    DisplayName: "My New Agent",
-    Tags:        []string{"production", "finance"},
-})
-fmt.Printf("Signing secret (save this!): %s\n", agent.SigningSecret)
+// Generate an ML-DSA-44 key pair (pk=1312 bytes, sk=2560 bytes)
+kp, err := moss.GenerateKeyPair()
 
-// Get agent details
-agent, _ := client.GetAgent("my-new-agent")
-fmt.Printf("Status: %s, Signatures: %d\n", agent.Status, agent.TotalSignatures)
+// Sign a payload (returns 2420-byte ML-DSA-44 signature)
+sig, err := moss.Sign(payload, kp.SecretKey)
 
-// Rotate key (returns new signing secret)
-rotateResult, _ := client.RotateAgentKey("my-new-agent", "quarterly rotation")
-fmt.Printf("New signing secret: %s\n", rotateResult.SigningSecret)
-
-// Suspend agent (can be reactivated)
-client.SuspendAgent("my-new-agent", "suspicious activity")
-
-// Reactivate agent
-client.ReactivateAgent("my-new-agent")
-
-// Permanently revoke agent
-client.RevokeAgent("my-new-agent", "compromised credentials")
+// Verify a signature against a payload and public key
+valid := moss.Verify(payload, kp.PublicKey, sig)
 ```
 
-## Envelope Format
+### Client
 
-Every signed action produces a verifiable envelope:
+```go
+// Create client
+client, err := moss.NewClient(moss.Config{
+    APIKey:  os.Getenv("MOSS_API_KEY"),
+    BaseURL: "https://api.mosscomputing.com", // optional
+    Timeout: 30 * time.Second,                // optional
+})
+```
+
+### Sign
+
+```go
+result, err := client.Sign(moss.SignRequest{
+    Payload: payload,           // Any serializable data
+    AgentID: "agent-id",       // Agent identifier
+    Action:  "action-name",    // Optional action type
+    Context: map[string]any{}, // Optional metadata
+})
+```
+
+### Verify
+
+```go
+verifyResult, err := client.Verify(payload, envelope)
+// verifyResult.Valid: true if signature valid
+// verifyResult.Subject: signing agent ID
+```
+
+### Envelope
 
 ```go
 type Envelope struct {
-    Spec        string `json:"spec"`         // "moss-0001"
-    Version     int    `json:"version"`      // 1
-    Alg         string `json:"alg"`          // "ML-DSA-44"
-    Subject     string `json:"subject"`      // Agent ID
-    KeyVersion  int    `json:"key_version"`  // Key version for rotation
-    Seq         int64  `json:"seq"`          // Sequence number
-    IssuedAt    int64  `json:"issued_at"`    // Unix timestamp
-    PayloadHash string `json:"payload_hash"` // SHA-256 of payload
-    Signature   string `json:"signature"`    // ML-DSA-44 signature
+    Spec        string // "moss-0001"
+    Version     int    // 1
+    Alg         string // "ML-DSA-44"
+    Subject     string // Agent ID
+    KeyVersion  int    // Key version for rotation
+    Seq         int64  // Sequence number
+    IssuedAt    int64  // Unix timestamp
+    PayloadHash string // SHA-256 of payload
+    Signature   string // Base64-encoded ML-DSA-44 signature (2420 bytes)
 }
 ```
 
 ## Configuration
 
-```go
-client, _ := moss.NewClient(moss.Config{
-    // API key for enterprise features (optional)
-    APIKey: os.Getenv("MOSS_API_KEY"),
-    
-    // Custom API URL (optional)
-    BaseURL: "https://moss-api.example.com",
-    
-    // Request timeout (optional, default 30s)
-    Timeout: 10 * time.Second,
-    
-    // Custom HTTP client (optional)
-    HTTPClient: &http.Client{...},
-})
-```
-
-## Error Handling
-
-```go
-result, err := client.Sign(req)
-if err != nil {
-    switch {
-    case errors.Is(err, moss.ErrNoAPIKey):
-        // API key required for this operation
-    case errors.Is(err, moss.ErrAgentSuspended):
-        // Agent is suspended
-    case errors.Is(err, moss.ErrAgentRevoked):
-        // Agent has been revoked
-    default:
-        // Other error
-    }
-}
-```
-
-## Pricing Tiers
-
-| Tier | Price | Agents | Signatures | Retention |
-|------|-------|--------|------------|-----------|
-| **Free** | $0 | 5 | 1,000/day | 7 days |
-| **Pro** | $1,499/mo | Unlimited | Unlimited | 1 year |
-| **Enterprise** | Custom | Unlimited | Unlimited | 7 years |
-
-*Annual billing: $1,249/mo (save $3,000/year)*
-
-All new signups get a **14-day free trial** of Pro.
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `MOSS_API_KEY` | API key for enterprise features | None |
+| `MOSS_API_URL` | Custom API endpoint | `https://api.mosscomputing.com` |
 
 ## Links
 
-- [mosscomputing.com](https://mosscomputing.com) — Project site
-- [dev.mosscomputing.com](https://dev.mosscomputing.com) — Developer Console
-- [audit.mosscomputing.com](https://audit.mosscomputing.com) — Authority Vault
-- [Python SDK](https://github.com/mosscomputing/moss) — moss-sdk
-- [TypeScript SDK](https://github.com/mosscomputing/moss-sdk-ts) — @moss/sdk
+- Documentation: [docs.mosscomputing.com/sdks/go](https://docs.mosscomputing.com/sdks/go)
+- Dashboard: [app.mosscomputing.com](https://app.mosscomputing.com)
+- Python SDK: [pypi.org/project/moss-sdk](https://pypi.org/project/moss-sdk/)
 
 ## License
 
-Proprietary - See LICENSE for terms.
+Business Source License 1.1 - See LICENSE file.
 
-Copyright (c) 2025-2026 IAMPASS Inc. All Rights Reserved.
+Copyright (c) 2025-2026 IAMPASS Inc.
