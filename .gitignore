@@ -1,0 +1,10 @@
+# Go build artifacts
+/go-agent
+/go-interop
+/go-benchmark
+/go-revoke-timing
+/go-offline-failclosed
+*.exe
+
+# Local SDK cache + keystore (test artifacts)
+/.moss_keystore/
