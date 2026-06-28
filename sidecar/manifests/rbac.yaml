@@ -1,0 +1,32 @@
+# RBAC for the MOSS sidecar — AUTHORITATIVE pod-delete path enabled.
+#
+# Namespace-scoped Role granting the sidecar permission to get/list/watch and
+# DELETE pods and to create pods/eviction (the two client-go mechanisms the
+# sidecar uses to authoritatively remove a revoked agent's pod). Bound to the
+# moss-sidecar ServiceAccount.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: moss-sidecar-pods
+  namespace: moss-sidecar
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: moss-sidecar-bind
+  namespace: moss-sidecar
+subjects:
+  - kind: ServiceAccount
+    name: moss-sidecar
+    namespace: moss-sidecar
+roleRef:
+  kind: Role
+  name: moss-sidecar-pods
+  apiGroup: rbac.authorization.k8s.io

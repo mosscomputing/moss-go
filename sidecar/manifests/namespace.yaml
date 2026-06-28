@@ -1,0 +1,5 @@
+# Namespace for the MOSS sidecar example manifests.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: moss-sidecar
