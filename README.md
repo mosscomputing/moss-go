@@ -183,6 +183,35 @@ type Envelope struct {
 - Dashboard: [app.mosscomputing.com](https://app.mosscomputing.com)
 - Python SDK: [pypi.org/project/moss-sdk](https://pypi.org/project/moss-sdk/)
 
+## Mission 19: Agent Runtime SDK + K8s Sidecar
+
+Mission 19 extends moss-go with a full Go Runtime SDK (lifecycle parity with the Python reference SDK) and a native Kubernetes sidecar that kills revoked agent pods. Both use ML-DSA-44 (FIPS 204) via `filippo.io/mldsa` for signing and offline feed verification. The module requires Go 1.25.
+
+### Go Runtime SDK (`runtime/` subpackage)
+
+The `runtime` subpackage mirrors the Python `MossAgent` and the TS runtime SDK lifecycle so all three SDKs exhibit the same behavior against the same backend.
+
+- **Auto-register** — `Init(apiKey, agentSubject, declaredBehavior, baseURL)` loads/creates an ML-DSA-44 keypair and starts the heartbeat, revocation, and event workers. The first governed action auto-registers via the backend; no explicit registration call is required.
+- **HTTP egress interception** — a `GovernedTransport` (`http.RoundTripper`) intercepts outbound HTTP so governed calls are evaluated before they leave the process. An explicit `Guard` decision API is also available for non-HTTP actions.
+- **Signed event logging** — every governed event is signed with ML-DSA-44 (`filippo.io/mldsa` `MLDSA44`) and batched (`events.go`, `crypto.go`).
+- **Heartbeat** — a background goroutine posts `POST /v1/agents/{subject}/heartbeat` every ~5s (configurable). The response carries `lease_expires_at`, `revocation_epoch`, `revoked`, and `server_time` (`heartbeat.go`).
+- **Offline revocation cache** — `RevocationWatcher` periodically fetches `GET /v1/revocations?since=epoch`, verifies the ML-DSA-44 signature offline with the embedded MOSS public key, persists the feed locally, and rejects lower-epoch feeds (anti-rollback). When the API is down the SDK enforces revocation from the cached feed (`revocation.go`).
+- **Kill** — `kill(reason)` flushes events, writes a final signed record, invokes a user hook, then `os.Exit`, with a watchdog escalation.
+- **Dead-man's switch** — if the API is unreachable past the cached lease TTL, the process self-terminates (fail-closed). A `revoked:true` heartbeat auto-invokes `kill()` (push revocation).
+
+Key files: `agent.go`, `config.go`, `crypto.go`, `events.go`, `heartbeat.go`, `policy.go`, `revocation.go`, `transport.go`, `persistence.go`. Examples live under `examples/` (`go-agent`, `go-interop`, `go-revoke-timing`, `go-offline-failclosed`, `go-benchmark`).
+
+### K8s Sidecar (`sidecar/` subpackage)
+
+The `sidecar` subpackage is a native Kubernetes sidecar (`cmd/main.go`, the `moss-sidecar` binary) that watches the MOSS signed revocation feed on behalf of a non-embedding agent and terminates the agent pod when MOSS revokes that agent.
+
+- **Two kill mechanisms** — (1) Primary in-pod: with `shareProcessNamespace: true`, send `SIGTERM` then `SIGKILL` to the agent PID in the sibling container (sub-second). (2) Authoritative: `client-go` pod delete (`gracePeriodSeconds: 0`), gated by a namespace-scoped RBAC `Role` + `RoleBinding` bound to the sidecar `ServiceAccount` (`killer.go`, `pod_delete.go`, `proc_linux.go`).
+- **RBAC-denied fallback** — when the pod-delete RBAC is denied (`Forbidden`), the in-pod signal path still terminates the agent within the kill deadline. The signal path is attempted first; the pod delete is the authoritative backstop.
+- **Offline feed verification** — `watcher.go` resolves the MOSS public key (embedded hex or fetched from the API well-known endpoint), verifies each feed's ML-DSA-44 signature, and rejects lower-epoch feeds (anti-rollback). `revocation.go` + `verify.go` handle fetch and verification.
+- **Validated on kind** — manifests under `sidecar/manifests/` (`deployment.yaml`, `deployment-rbac-denied.yaml`, `rbac.yaml`, `rbac-denied.yaml`, `serviceaccount.yaml`, `namespace.yaml`) are validated on a `kind` cluster, including the RBAC-denied fallback path.
+
+Configuration is via environment variables (see `sidecar.Config` / `FromEnv`). The sidecar requires `MOSS_API_KEY` and either `MOSS_AGENT_ID` or `MOSS_AGENT_SUBJECT`.
+
 ## License
 
 Business Source License 1.1 - See LICENSE file.

@@ -1,0 +1,30 @@
+# RBAC for the MOSS sidecar — pod-delete DENIED (signal-fallback scenario).
+#
+# Namespace-scoped Role granting ONLY pods get/list/watch (NO delete, NO
+# eviction create). Bound to the moss-sidecar-nodelete ServiceAccount. When
+# the sidecar attempts a client-go pod delete it receives Forbidden (logged),
+# and the in-pod shareProcessNamespace SIGTERM->SIGKILL fallback must
+# terminate the agent process within 10s (VAL-KILL-028).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: moss-sidecar-pods-readonly
+  namespace: moss-sidecar
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: moss-sidecar-nodelete-bind
+  namespace: moss-sidecar
+subjects:
+  - kind: ServiceAccount
+    name: moss-sidecar-nodelete
+    namespace: moss-sidecar
+roleRef:
+  kind: Role
+  name: moss-sidecar-pods-readonly
+  apiGroup: rbac.authorization.k8s.io

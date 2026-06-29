@@ -1,0 +1,74 @@
+# Example MOSS sidecar Deployment — pod-delete RBAC DENIED (signal fallback).
+#
+# Identical to deployment.yaml but the pod uses the `moss-sidecar-nodelete`
+# ServiceAccount whose Role (rbac-denied.yaml) grants ONLY pods get/list (no
+# delete). When the sidecar attempts the authoritative client-go pod delete it
+# receives Forbidden (logged); the in-pod shareProcessNamespace
+# SIGTERM->SIGKILL fallback must terminate the agent process within 10s
+# (VAL-KILL-028).
+#
+# Substitute ${MOSS_API_URL}, ${MOSS_API_KEY}, ${MOSS_AGENT_ID} before
+# applying, e.g. `envsubst < deployment-rbac-denied.yaml | kubectl apply -f -`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moss-agent-nodelete
+  namespace: moss-sidecar
+  labels:
+    app: moss-agent-nodelete
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: moss-agent-nodelete
+  template:
+    metadata:
+      labels:
+        app: moss-agent-nodelete
+    spec:
+      shareProcessNamespace: true
+      serviceAccountName: moss-sidecar-nodelete
+      initContainers:
+        - name: moss-sidecar
+          image: moss-sidecar:dev
+          imagePullPolicy: IfNotPresent
+          restartPolicy: Always
+          # The sidecar must signal the sibling agent process in the shared
+          # PID namespace, which requires CAP_KILL and a uid permitted to
+          # signal the target. Run as root so it can terminate an agent
+          # running as any uid.
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              add: ["KILL"]
+          env:
+            - name: MOSS_API_URL
+              value: "${MOSS_API_URL}"
+            - name: MOSS_API_KEY
+              value: "${MOSS_API_KEY}"
+            - name: MOSS_AGENT_ID
+              value: "${MOSS_AGENT_ID}"
+            - name: MOSS_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MOSS_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MOSS_AGENT_CMDLINE_MATCH
+              value: "sleep 3600"
+            # "both" so the sidecar ATTEMPTS the pod delete (logs Forbidden)
+            # and then falls back to the signal path.
+            - name: MOSS_KILL_MODE
+              value: "both"
+            - name: MOSS_POLL_INTERVAL
+              value: "1"
+            - name: MOSS_SIGNAL_TERM_GRACE
+              value: "2"
+            - name: MOSS_KILL_DEADLINE
+              value: "8"
+      containers:
+        - name: moss-fake-agent
+          image: busybox:1.36
+          command: ["sleep", "3600"]
