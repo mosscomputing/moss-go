@@ -1,0 +1,80 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-capabilities.json",
+  "kind": "happy",
+  "entity": "capability",
+  "description": "Sample capability tokens issued under CUST1. Includes a parent cap_ token and an attenuated delegated child cap_ token (strict subset on permissions, resource_scope, execution_limit, classification_ceiling; max_delegation_depth decremented).",
+  "issue_response": {
+    "token": "cap_parent_SEED",
+    "token_id": "66666666-6666-4666-8666-666666666601",
+    "agent_id": "77777777-7777-4777-8777-777777777701",
+    "customer_id": "33333333-3333-4333-8333-333333333301",
+    "status": "active",
+    "capabilities": ["sign:envelope", "audit:read", "compliance:read"],
+    "constraints": {
+      "executions_remaining": 1000,
+      "expires_at": "2026-07-26T12:00:00Z",
+      "max_delegation_depth": 3,
+      "classification_ceiling": "internal",
+      "resource_scope": ["org:33333333-3333-4333-8333-333333333301"]
+    }
+  },
+  "delegate_request": {
+    "parent_token": "cap_parent_SEED",
+    "agent_id": "77777777-7777-4777-8777-777777777702",
+    "attenuate": {
+      "permissions": ["sign:envelope"],
+      "resource_scope": ["org:33333333-3333-4333-8333-333333333301"],
+      "execution_limit": 100,
+      "classification_ceiling": "internal",
+      "max_delegation_depth": 2
+    }
+  },
+  "delegate_response": {
+    "token": "cap_child_SEED",
+    "token_id": "66666666-6666-4666-8666-666666666602",
+    "parent_token_id": "66666666-6666-4666-8666-666666666601",
+    "agent_id": "77777777-7777-4777-8777-777777777702",
+    "customer_id": "33333333-3333-4333-8333-333333333301",
+    "status": "active",
+    "capabilities": ["sign:envelope"],
+    "constraints": {
+      "executions_remaining": 100,
+      "expires_at": "2026-07-26T12:00:00Z",
+      "max_delegation_depth": 2,
+      "classification_ceiling": "internal",
+      "resource_scope": ["org:33333333-3333-4333-8333-333333333301"]
+    }
+  },
+  "get_response": {
+    "token_id": "66666666-6666-4666-8666-666666666601",
+    "agent_id": "77777777-7777-4777-8777-777777777701",
+    "customer_id": "33333333-3333-4333-8333-333333333301",
+    "status": "active",
+    "capabilities": ["sign:envelope", "audit:read", "compliance:read"],
+    "constraints": {
+      "executions_remaining": 999,
+      "expires_at": "2026-07-26T12:00:00Z",
+      "max_delegation_depth": 3,
+      "classification_ceiling": "internal",
+      "resource_scope": ["org:33333333-3333-4333-8333-333333333301"]
+    }
+  },
+  "revoke_response": {
+    "affected": {
+      "direct": 1,
+      "delegated": 1,
+      "total": 2
+    },
+    "propagation": {
+      "channels_notified": ["webhook", "websocket"],
+      "status": "complete"
+    }
+  },
+  "attenuation_invariants": [
+    "child.permissions is a subset of parent.permissions",
+    "child.resource_scope is a subset of parent.resource_scope",
+    "child.execution_limit <= parent.execution_limit",
+    "child.classification_ceiling <= parent.classification_ceiling",
+    "child.max_delegation_depth < parent.max_delegation_depth"
+  ]
+}

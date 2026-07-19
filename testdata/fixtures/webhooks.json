@@ -1,0 +1,74 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-webhooks.json",
+  "kind": "happy",
+  "entity": "webhook",
+  "description": "Sample webhook registrations under CUST1. The one-time signing secret appears ONLY on the register/create response (never on get/list). The active flag and the canonical webhook_not_found error code are asserted by parity tests.",
+  "register_request": {
+    "url": "http://127.0.0.1:3105/hook",
+    "events": ["envelope.signed", "capability.revoked", "customer.suspended"]
+  },
+  "register_response": {
+    "webhook_id": "99999999-9999-4999-8999-999999999901",
+    "customer_id": "33333333-3333-4333-8333-333333333301",
+    "url": "http://127.0.0.1:3105/hook",
+    "events": ["envelope.signed", "capability.revoked", "customer.suspended"],
+    "active": true,
+    "secret": "whsec_SEED_ONE_TIME_ONLY",
+    "created_at": "2026-07-19T12:00:00Z"
+  },
+  "list_response": [
+    {
+      "webhook_id": "99999999-9999-4999-8999-999999999901",
+      "customer_id": "33333333-3333-4333-8333-333333333301",
+      "url": "http://127.0.0.1:3105/hook",
+      "events": ["envelope.signed", "capability.revoked", "customer.suspended"],
+      "active": true,
+      "created_at": "2026-07-19T12:00:00Z"
+    },
+    {
+      "webhook_id": "99999999-9999-4999-8999-999999999902",
+      "customer_id": "33333333-3333-4333-8333-333333333301",
+      "url": "http://127.0.0.1:3106/hook",
+      "events": ["envelope.signed"],
+      "active": false,
+      "created_at": "2026-07-19T12:05:00Z"
+    }
+  ],
+  "get_response": {
+    "webhook_id": "99999999-9999-4999-8999-999999999901",
+    "customer_id": "33333333-3333-4333-8333-333333333301",
+    "url": "http://127.0.0.1:3105/hook",
+    "events": ["envelope.signed", "capability.revoked", "customer.suspended"],
+    "active": true,
+    "created_at": "2026-07-19T12:00:00Z"
+  },
+  "delete_response": {
+    "status": 204,
+    "body": null
+  },
+  "signature_verification": {
+    "algorithm": "HMAC-SHA256",
+    "header": "X-MOSS-Signature",
+    "payload_format": "<timestamp>.<body>",
+    "signature_encoding": "hex",
+    "compare_mode": "constant_time",
+    "valid_signature_for_seed_secret": "8d8e8f90010203040506070809101112131415161718191a1b1c1d1e1f202122",
+    "valid_payload": "1752926400.{\"event\":\"envelope.signed\",\"envelope_id\":\"88888888-8888-4888-8888-888888888801\"}",
+    "expected_result_valid": true,
+    "tampered_payload": "1752926400.{\"event\":\"envelope.signed\",\"envelope_id\":\"88888888-8888-4888-8888-888888888802\"}",
+    "expected_result_tampered": false
+  },
+  "ssrf_guard": {
+    "rejected_urls": [
+      "http://169.254.169.254/",
+      "http://10.0.0.1/",
+      "http://192.168.1.1/"
+    ],
+    "accepted_loopback_under_local_gate": [
+      "http://127.0.0.1:3105/hook",
+      "http://localhost:3105/hook",
+      "http://[::1]:3105/hook"
+    ],
+    "rejection_error_code": "ssrf_rejected"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-envelopes.json",
+  "kind": "happy",
+  "entity": "envelope",
+  "description": "Sample execution envelopes forming a hash chain. Each envelope's prev_hash equals the prior envelope's hash (the chain linkage the client-side verifyChain helper validates). All hashes are SHA-256 hex strings anchored to fixed envelope contents so the chain is deterministic.",
+  "org_id": "33333333-3333-4333-8333-333333333301",
+  "envelopes": [
+    {
+      "envelope_id": "88888888-8888-4888-8888-888888888801",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "agent_id": "77777777-7777-4777-8777-777777777701",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "a1b2c3d4e5f60718293a4b5c6d7e8f9001020304050607080910111213141516",
+      "decision": "allow",
+      "signed_at": "2026-07-19T12:00:00Z",
+      "capability_token_id": "66666666-6666-4666-8666-666666666601",
+      "payload": {
+        "output": "Hello, world.",
+        "model": "gpt-4o-mini",
+        "tools_used": []
+      }
+    },
+    {
+      "envelope_id": "88888888-8888-4888-8888-888888888802",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "agent_id": "77777777-7777-4777-8777-777777777701",
+      "prev_hash": "a1b2c3d4e5f60718293a4b5c6d7e8f9001020304050607080910111213141516",
+      "hash": "b2c3d4e5f60718293a4b5c6d7e8f9001020304050607080910111213141516a1",
+      "decision": "block",
+      "signed_at": "2026-07-19T12:01:00Z",
+      "capability_token_id": "66666666-6666-4666-8666-666666666601",
+      "payload": {
+        "output": "Blocked by policy: PII leak detected.",
+        "model": "gpt-4o-mini",
+        "tools_used": ["pii_filter"]
+      }
+    },
+    {
+      "envelope_id": "88888888-8888-4888-8888-888888888803",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "agent_id": "77777777-7777-4777-8777-777777777702",
+      "prev_hash": "b2c3d4e5f60718293a4b5c6d7e8f9001020304050607080910111213141516a1",
+      "hash": "c3d4e5f60718293a4b5c6d7e8f9001020304050607080910111213141516a1b2",
+      "decision": "hold",
+      "signed_at": "2026-07-19T12:02:00Z",
+      "capability_token_id": "66666666-6666-4666-8666-666666666602",
+      "payload": {
+        "output": "Held for human review.",
+        "model": "gpt-4o-mini",
+        "tools_used": []
+      }
+    }
+  ],
+  "chain_invariants": [
+    "envelopes[0].prev_hash is the all-zero anchor",
+    "for i >= 1: envelopes[i].prev_hash == envelopes[i-1].hash",
+    "verifyChain(ordered_envelopes) -> {valid: true}",
+    "verifyChain(shuffled_envelopes) -> {valid: false, broken_at: <first divergence>}"
+  ]
+}

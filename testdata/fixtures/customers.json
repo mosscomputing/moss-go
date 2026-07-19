@@ -1,0 +1,174 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-customers.json",
+  "kind": "happy",
+  "entity": "customer",
+  "description": "Sample customers (organizations) under each partner. Covers every lifecycle status in the canonical status enum so parity tests assert identical status strings across TS/Python/Go. CUST_FOREIGN is owned by PARTNER_B and used for cross-partner existence-non-leak (404) assertions.",
+  "customers": [
+    {
+      "customer_id": "33333333-3333-4333-8333-333333333301",
+      "partner_id": "11111111-1111-4111-8111-111111111111",
+      "external_id": "cust-external-1",
+      "name": "Northwind AI",
+      "status": "sandbox_active",
+      "token_prefix": "cust_1",
+      "seed_token": "cust_1_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "updated_at": "2026-07-19T12:00:00Z",
+      "governance": {
+        "frameworks_active": ["GDPR", "EU_AI_ACT", "DORA"],
+        "policies_inherited": 12,
+        "compliance_score": 742
+      },
+      "limits": {
+        "agents": 50,
+        "capability_tokens_per_hour": 1000,
+        "webhooks": 25
+      },
+      "settings": {
+        "theme": "default",
+        "region": "us-central1"
+      }
+    },
+    {
+      "customer_id": "33333333-3333-4333-8333-333333333302",
+      "partner_id": "11111111-1111-4111-8111-111111111111",
+      "external_id": "cust-external-2",
+      "name": "Acme Robotics",
+      "status": "production_active",
+      "token_prefix": "cust_2",
+      "seed_token": "cust_2_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "updated_at": "2026-07-19T12:00:00Z",
+      "governance": {
+        "frameworks_active": ["GDPR", "DORA"],
+        "policies_inherited": 8,
+        "compliance_score": 681
+      },
+      "limits": {
+        "agents": 200,
+        "capability_tokens_per_hour": 5000,
+        "webhooks": 50
+      },
+      "settings": {
+        "theme": "dark",
+        "region": "us-central1"
+      }
+    },
+    {
+      "customer_id": "33333333-3333-4333-8333-333333333303",
+      "partner_id": "11111111-1111-4111-8111-111111111111",
+      "external_id": "cust-external-3",
+      "name": "Globex Agents",
+      "status": "pending",
+      "token_prefix": "cust_3",
+      "seed_token": "cust_3_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "updated_at": "2026-07-19T12:00:00Z",
+      "governance": {
+        "frameworks_active": [],
+        "policies_inherited": 0,
+        "compliance_score": null
+      },
+      "limits": {
+        "agents": 5,
+        "capability_tokens_per_hour": 100,
+        "webhooks": 5
+      },
+      "settings": {
+        "theme": "default",
+        "region": "us-central1"
+      }
+    },
+    {
+      "customer_id": "33333333-3333-4333-8333-333333333304",
+      "partner_id": "11111111-1111-4111-8111-111111111111",
+      "external_id": "cust-external-4",
+      "name": "Initech ML",
+      "status": "suspended",
+      "token_prefix": "cust_4",
+      "seed_token": "cust_4_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "updated_at": "2026-07-19T12:05:00Z",
+      "governance": {
+        "frameworks_active": ["GDPR"],
+        "policies_inherited": 3,
+        "compliance_score": 410
+      },
+      "limits": {
+        "agents": 10,
+        "capability_tokens_per_hour": 200,
+        "webhooks": 10
+      },
+      "settings": {
+        "theme": "default",
+        "region": "us-central1",
+        "suspension_reason": "billing_overdue"
+      }
+    },
+    {
+      "customer_id": "33333333-3333-4333-8333-333333333305",
+      "partner_id": "11111111-1111-4111-8111-111111111111",
+      "external_id": "cust-external-5",
+      "name": "Umbrella Cognitive",
+      "status": "deactivated",
+      "token_prefix": "cust_5",
+      "seed_token": "cust_5_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "updated_at": "2026-07-19T12:10:00Z",
+      "governance": {
+        "frameworks_active": [],
+        "policies_inherited": 0,
+        "compliance_score": null
+      },
+      "limits": {
+        "agents": 0,
+        "capability_tokens_per_hour": 0,
+        "webhooks": 0
+      },
+      "settings": {
+        "theme": "default",
+        "region": "us-central1",
+        "deactivated_reason": "offboarded"
+      }
+    },
+    {
+      "customer_id": "44444444-4444-4444-8444-444444444401",
+      "partner_id": "22222222-2222-4222-8222-222222222222",
+      "external_id": "cust-b-external-1",
+      "name": "Soylent Bots",
+      "status": "sandbox_active",
+      "token_prefix": "cust_B1",
+      "seed_token": "cust_B1_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "updated_at": "2026-07-19T12:00:00Z",
+      "governance": {
+        "frameworks_active": ["GDPR"],
+        "policies_inherited": 2,
+        "compliance_score": 560
+      },
+      "limits": {
+        "agents": 20,
+        "capability_tokens_per_hour": 500,
+        "webhooks": 10
+      },
+      "settings": {
+        "theme": "default",
+        "region": "eu-west1"
+      }
+    }
+  ],
+  "foreign_customer_for_partner_a": {
+    "customer_id": "44444444-4444-4444-8444-444444444401",
+    "note": "Owned by PARTNER_B. Used by cross-partner isolation cases: PARTNER_A accessing this id must receive a 404 customer_not_found (existence-non-leak convention), never 403."
+  },
+  "pagination": {
+    "limit_default": 20,
+    "limit_max": 100,
+    "cursor_encoding": "opaque-base64url",
+    "sample_cursors": {
+      "first": "ajk2NjRmZDQ1Y2I3",
+      "next": "bmV4dDpwYWdlOjI=",
+      "end": null
+    }
+  }
+}

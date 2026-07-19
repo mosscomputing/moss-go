@@ -1,0 +1,83 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-error-422.json",
+  "kind": "error",
+  "status": 422,
+  "error_class": "ValidationError",
+  "description": "Canonical ValidationError (422) corpus. HTTP 422 surfaces as the SDK's ValidationError. The backend wraps every FastAPI 422 into the canonical envelope {error:'validation_error', message, request_id, details:[...]} via the global RequestValidationError handler. The route-level error code (e.g. ssrf_rejected) is carried in the 'error' field when the route raises HTTPException(422, {'error': '<code>'}).",
+  "envelope_shape": {
+    "error": "validation_error",
+    "message": "<human-readable>",
+    "request_id": "<opaque>",
+    "details": [{"loc": ["body", "field"], "msg": "<reason>", "type": "value_error"}]
+  },
+  "cases": [
+    {
+      "name": "validation_error",
+      "code": "validation_error",
+      "message": "Request validation failed.",
+      "request_id": "req-422-generic-01",
+      "trigger": "customers.create({}) (missing required fields) or any malformed request body.",
+      "extra_fields": {
+        "details": [
+          {"loc": ["body", "name"], "msg": "field required", "type": "value_error.missing"},
+          {"loc": ["body", "external_id"], "msg": "field required", "type": "value_error.missing"}
+        ]
+      }
+    },
+    {
+      "name": "ssrf_rejected",
+      "code": "ssrf_rejected",
+      "message": "The webhook URL is not allowed (SSRF guard: private/link-local/cloud-metadata endpoints are rejected).",
+      "request_id": "req-422-ssrf-01",
+      "trigger": "webhooks.register({url: 'http://169.254.169.254/'}) or any RFC1918/link-local sink.",
+      "extra_fields": {
+        "rejected_url": "http://169.254.169.254/",
+        "reason": "ssrf_guard"
+      },
+      "parity_note": "Under the local non-prod gate, loopback sinks 127.0.0.1/::1/localhost within ports 3101-3111 are accepted. The same ssrf_rejected code string is used in TS/Python/Go and matches the Partner surface."
+    },
+    {
+      "name": "invalid_revocation_type",
+      "code": "invalid_revocation_type",
+      "message": "The revocation type must be one of {capability_token, agent}.",
+      "request_id": "req-422-revtype-01",
+      "trigger": "revoke({type: 'bogus', target_id: <uuid>}).",
+      "extra_fields": {
+        "allowed_types": ["capability_token", "agent"]
+      }
+    },
+    {
+      "name": "invalid_target_id",
+      "code": "invalid_target_id",
+      "message": "The target_id must be a valid UUID.",
+      "request_id": "req-422-tgt-01",
+      "trigger": "revoke({type: 'capability_token', target_id: 'not-a-uuid'}).",
+      "extra_fields": {}
+    },
+    {
+      "name": "missing_reason",
+      "code": "missing_reason",
+      "message": "A reason is required to suspend a customer.",
+      "request_id": "req-422-reason-01",
+      "trigger": "customers.suspend(id, {}) where reason is required.",
+      "extra_fields": {
+        "field": "reason"
+      }
+    },
+    {
+      "name": "incomplete_attestation",
+      "code": "incomplete_attestation",
+      "message": "The attestation is incomplete; required evidence is missing.",
+      "request_id": "req-422-att-01",
+      "trigger": "attestations.submit with missing required evidence fields.",
+      "extra_fields": {
+        "missing_fields": ["evidence_url", "control_id"]
+      }
+    }
+  ],
+  "sdk_mapping": {
+    "http_status": 422,
+    "error_class": "ValidationError",
+    "distinct_from": ["NotFoundError", "AuthError", "RateLimitError", "ServerError"]
+  }
+}

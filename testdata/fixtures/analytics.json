@@ -1,0 +1,57 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-analytics.json",
+  "kind": "happy",
+  "entity": "analytics",
+  "description": "Sample analytics aggregates + usage blocks for CUST1. Field names and enum string values are identical to the Partner surface analytics contract so cross-language parity diffs are byte-identical.",
+  "customer_id": "33333333-3333-4333-8333-333333333301",
+  "aggregates": {
+    "governance": {
+      "total_signatures": 1284,
+      "total_violations": 17,
+      "total_attestations": 42,
+      "policies_enforced": 12,
+      "frameworks_active": ["GDPR", "EU_AI_ACT", "DORA"]
+    },
+    "signatures": {
+      "per_day_last_30d": [
+        {"date": "2026-07-19", "count": 73, "allowed": 70, "blocked": 2, "held": 1},
+        {"date": "2026-07-18", "count": 81, "allowed": 79, "blocked": 1, "held": 1},
+        {"date": "2026-07-17", "count": 64, "allowed": 63, "blocked": 1, "held": 0}
+      ]
+    },
+    "violations": {
+      "by_decision": {"allow": 1240, "block": 17, "hold": 27},
+      "by_policy": {"pii_filter": 9, "tool_allowlist": 5, "topic_allowlist": 3}
+    },
+    "compliance": {
+      "score": 742,
+      "score_band": "advanced",
+      "frameworks": {
+        "GDPR": {"coverage": 0.86, "status": "active"},
+        "EU_AI_ACT": {"coverage": 0.71, "status": "active"},
+        "DORA": {"coverage": 0.55, "status": "active"}
+      }
+    }
+  },
+  "usage": {
+    "signatures_per_month": 1284,
+    "capability_tokens_per_hour": 312,
+    "webhooks_delivered": 1180,
+    "webhooks_failed": 4,
+    "agents_active": 14,
+    "storage_mb": 326.4
+  },
+  "cached_at": "2026-07-19T12:00:30Z",
+  "generated_at": "2026-07-19T12:00:00Z",
+  "realtime_stream": {
+    "protocol": "websocket",
+    "path": "/v1/analytics/stream",
+    "frame_kind": "analytics.tick",
+    "sample_frame": {
+      "type": "analytics.tick",
+      "customer_id": "33333333-3333-4333-8333-333333333301",
+      "ts": "2026-07-19T12:00:01Z",
+      "counters": {"signatures": 1, "violations": 0}
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-error-429.json",
+  "kind": "error",
+  "status": 429,
+  "error_class": "RateLimitError",
+  "description": "Canonical RateLimitError (429) corpus. HTTP 429 surfaces as the SDK's RateLimitError carrying the Retry-After value parsed from the response header (seconds or HTTP-date). The SDK retries idempotent GETs on 429 honoring Retry-After; mutations are NOT retried (the 429 is surfaced immediately). The seeded e2e runs with MOSS_DISABLE_RATE_LIMIT=1 so 429 cases are typically mock-driven.",
+  "header_shape": {
+    "Retry-After": "<seconds | HTTP-date>",
+    "X-RateLimit-Limit": "<quota>",
+    "X-RateLimit-Remaining": "0",
+    "X-RateLimit-Reset": "<epoch-seconds>"
+  },
+  "cases": [
+    {
+      "name": "capability_quota_exceeded",
+      "code": "capability_quota_exceeded",
+      "message": "The customer's capability_tokens_per_hour quota has been exceeded.",
+      "request_id": "req-429-cap-01",
+      "trigger": "capabilities.issue over the customer's capability_tokens_per_hour quota.",
+      "extra_fields": {
+        "limit": "capability_tokens_per_hour",
+        "retry_after": 3600,
+        "retry_after_header": "3600"
+      },
+      "parity_note": "The SDK does NOT auto-retry a 429 for this mutation (mutations are not retried). Exactly one backend POST was made."
+    },
+    {
+      "name": "partner_rate_limited",
+      "code": "partner_rate_limited",
+      "message": "The partner has exceeded the rate-limit window.",
+      "request_id": "req-429-prt-01",
+      "trigger": "A burst of mint/list calls beyond the partner window.",
+      "extra_fields": {
+        "limit": "partner_requests_per_window",
+        "retry_after": 60,
+        "retry_after_header": "60"
+      },
+      "parity_note": "Assert only 429 + Retry-After presence per the known partner-429 header cosmetics. The header value may be present even if its semantic content is approximate."
+    },
+    {
+      "name": "webhooks_per_customer_exceeded",
+      "code": "webhooks_per_customer_exceeded",
+      "message": "The customer's webhooks-per-customer limit has been reached.",
+      "request_id": "req-429-wh-01",
+      "trigger": "webhooks.register beyond the customer's webhooks limit.",
+      "extra_fields": {
+        "limit": "webhooks_per_customer",
+        "retry_after": null,
+        "retry_after_header": null
+      },
+      "parity_note": "This is a hard cap, not a time-windowed quota; Retry-After may be absent. The SDK still surfaces RateLimitError with status 429."
+    }
+  ],
+  "sdk_mapping": {
+    "http_status": 429,
+    "error_class": "RateLimitError",
+    "carries": ["retry_after", "limit"],
+    "retry_policy": "GET retried honoring Retry-After; mutations NOT retried (surfaced immediately).",
+    "distinct_from": ["NotFoundError", "AuthError", "ValidationError", "ServerError"]
+  }
+}
