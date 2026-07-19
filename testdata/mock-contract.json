@@ -1,0 +1,112 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-mock-contract.json",
+  "name": "moss-mock-contract",
+  "version": "1.0.0",
+  "description": "Canonical Prism mock contract: expected HTTP status, content-type, and sha256 of seeded (seed=m3mock) responses. Byte-identical across moss-sdk-ts, moss-agent-sdk, and moss-go so each repo's mock-driven test asserts the same expected responses against the same vendored spec + same Prism flags. Fulfills VAL-DX-007, VAL-DX-008, VAL-DX-009, VAL-DX-010, VAL-DX-013, VAL-DX-014, VAL-DX-018, VAL-DX-019.",
+  "prism": {
+    "package": "@stoplight/prism-cli",
+    "version": "5.14.2",
+    "spec": "testdata/openapi.json",
+    "port": 4010,
+    "host": "0.0.0.0",
+    "seed": "m3mock",
+    "flags": ["--errors", "--dynamic", "--seed", "m3mock", "-h", "0.0.0.0"],
+    "errors_mode": true,
+    "errors_mode_note": "--errors => request-body validation violations return HTTP 422 (not a canned 200) — VAL-DX-018"
+  },
+  "base_url": "http://localhost:4010",
+  "customer_id": "00000000-0000-0000-0000-000000000001",
+  "cases": [
+    {
+      "name": "health",
+      "fulfills": ["VAL-DX-007", "VAL-DX-008"],
+      "method": "GET",
+      "path": "/health",
+      "headers": {},
+      "expected_status": 200,
+      "expected_content_type_prefix": "application/json",
+      "expected_sha256": "2db6c1f7ada4484424b51bfccd107c36db1881dbd87229babc2165b3d00fc5d3",
+      "note": "/health has an empty schema {} in the spec; Prism dynamic mode emits a placeholder JSON object. Status 200 + application/json is the schema-valid assertion."
+    },
+    {
+      "name": "customers_list",
+      "fulfills": ["VAL-DX-009"],
+      "method": "GET",
+      "path": "/v1/partner/customers",
+      "headers": {"Authorization": "Bearer prt_mock"},
+      "expected_status": 200,
+      "expected_content_type_prefix": "application/json",
+      "expected_sha256": "51b8735bf1bf2b7d0bde6e5c413b44e4bc87b0c3eaa7c2f1567f96ca3f288065"
+    },
+    {
+      "name": "customers_create_valid",
+      "fulfills": ["VAL-DX-009"],
+      "method": "POST",
+      "path": "/v1/partner/customers",
+      "headers": {"Authorization": "Bearer prt_mock", "Content-Type": "application/json"},
+      "body": {"external_id": "ext1", "name": "Cust One"},
+      "expected_status": 201,
+      "expected_content_type_prefix": "application/json",
+      "expected_sha256": "51b8735bf1bf2b7d0bde6e5c413b44e4bc87b0c3eaa7c2f1567f96ca3f288065",
+      "note": "Same sha as customers_list: Prism dynamic mode seeds the same customer schema identically."
+    },
+    {
+      "name": "customers_create_malformed",
+      "fulfills": ["VAL-DX-018"],
+      "method": "POST",
+      "path": "/v1/partner/customers",
+      "headers": {"Authorization": "Bearer prt_mock", "Content-Type": "application/json"},
+      "body": {"random_field": "no required fields"},
+      "expected_status": 422,
+      "expected_content_type_prefix": "application/json",
+      "expected_sha256": null,
+      "note": "Malformed body (missing required external_id+name) => 422, NOT 200. The 422 body is itself dynamic so only the status is pinned."
+    },
+    {
+      "name": "session_mint",
+      "fulfills": ["VAL-DX-010"],
+      "method": "POST",
+      "path": "/v1/partner/customers/{customer_id}/session",
+      "path_params": {"customer_id": "00000000-0000-0000-0000-000000000001"},
+      "headers": {"Authorization": "Bearer prt_mock"},
+      "expected_status": 201,
+      "expected_content_type_prefix": "application/json",
+      "expected_sha256": "34d41b7ad3f3f3ac0301873f5a2058106fe8950f721a1ee2f3c31a01c87f208d"
+    },
+    {
+      "name": "introspect_valid",
+      "fulfills": ["VAL-DX-010"],
+      "method": "POST",
+      "path": "/v1/tokens/introspect",
+      "headers": {"Authorization": "Bearer internal:mock:svc@local", "Content-Type": "application/json"},
+      "body": {"token": "prt_mock"},
+      "expected_status": 200,
+      "expected_content_type_prefix": "application/json",
+      "expected_sha256": "498ce4aa1d13fb8e8b890cf3aefad9827f459103703c14e5909445381914226e"
+    },
+    {
+      "name": "introspect_malformed",
+      "fulfills": ["VAL-DX-018"],
+      "method": "POST",
+      "path": "/v1/tokens/introspect",
+      "headers": {"Authorization": "Bearer internal:mock:svc@local", "Content-Type": "application/json"},
+      "body": {"not_token": "x"},
+      "expected_status": 422,
+      "expected_content_type_prefix": "application/json",
+      "expected_sha256": null,
+      "note": "Missing required 'token' field => 422 (IntrospectRequest requires token), NOT 200 {active:false}."
+    },
+    {
+      "name": "compliance_report_pdf",
+      "fulfills": ["VAL-DX-019"],
+      "method": "GET",
+      "path": "/v1/partner/customers/{customer_id}/compliance-report",
+      "path_params": {"customer_id": "00000000-0000-0000-0000-000000000001"},
+      "headers": {"Authorization": "Bearer prt_mock", "Accept": "application/pdf"},
+      "expected_status": 200,
+      "expected_content_type_prefix": "application/pdf",
+      "expected_sha256": "a4af2c380ea3b24be8f3d5fea55985d6b5fc77332ad30c113eb007b861e52232",
+      "note": "Accept: application/pdf forces Prism content negotiation onto the binary PDF content type (the route also advertises a benign empty application/json). VAL-DX-019."
+    }
+  ]
+}
