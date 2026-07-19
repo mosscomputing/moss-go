@@ -1,0 +1,44 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-session.json",
+  "kind": "happy",
+  "entity": "session",
+  "description": "Sample impersonation session mint response from POST /v1/partner/customers/{id}/session. The partner (prt_) mints a 15-minute full-access cust_ session token. ttl_seconds is fixed at 900 (15 minutes). expires_at is anchored to the corpus anchor date + 15 minutes.",
+  "mint_response": {
+    "session_id": "55555555-5555-4555-8555-555555555501",
+    "customer_id": "33333333-3333-4333-8333-333333333301",
+    "token": "cust_session_SEED",
+    "prefix": "cust_1",
+    "expires_at": "2026-07-19T12:15:00Z",
+    "ttl_seconds": 900,
+    "issued_by_partner": {
+      "partner_id": "11111111-1111-4111-8111-111111111111",
+      "token_prefix": "prt_A"
+    },
+    "audit": {
+      "action": "partner.session.minted",
+      "subject": "partner:prt_A",
+      "decision": "allow",
+      "parameters": {
+        "ttl_seconds": 900,
+        "session_id": "55555555-5555-4555-8555-555555555501"
+      },
+      "org_id": "33333333-3333-4333-8333-333333333301"
+    }
+  },
+  "revoke_response": {
+    "status": 204,
+    "body": null,
+    "audit": {
+      "action": "partner.session.revoked",
+      "subject": "partner:prt_A",
+      "decision": "allow",
+      "org_id": "33333333-3333-4333-8333-333333333301"
+    }
+  },
+  "notes": [
+    "The raw cust_ token is returned exactly once at mint time and is never persisted in clear.",
+    "A second mint on the same customer produces a distinct raw cust_ token + distinct session_id.",
+    "Revoked session tokens are rejected by authenticate_customer with 401 invalid_customer_credential (see errors/401.json).",
+    "Cross-partner mint (PARTNER_B minting for PARTNER_A's customer) returns 404 customer_not_found (see errors/404.json)."
+  ]
+}

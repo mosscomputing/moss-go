@@ -1,0 +1,71 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-index.json",
+  "name": "moss-shared-fixtures",
+  "version": "1.0.0",
+  "description": "Shared test fixtures / seed data vendored byte-identically into moss-sdk-ts, moss-agent-sdk, and moss-go for cross-language parity tests.",
+  "anchor_date": "2026-07-19T12:00:00Z",
+  "files": [
+    {"path": "partner.json",       "kind": "happy",   "covers": ["sample partner seed (PARTNER_A, PARTNER_B)"]},
+    {"path": "customers.json",     "kind": "happy",   "covers": ["sample customers under each partner", "all lifecycle states: pending, sandbox_active, production_active, suspended, deactivated"]},
+    {"path": "session.json",       "kind": "happy",   "covers": ["impersonation session mint response", "cust_ token + 15-minute TTL"]},
+    {"path": "capabilities.json",  "kind": "happy",   "covers": ["parent cap_ token", "attenuated delegated child cap_ token", "constraints block (executions_remaining, expires_at, max_delegation_depth)"]},
+    {"path": "envelopes.json",     "kind": "happy",   "covers": ["execution envelopes forming a hash chain (prev_hash -> hash)"]},
+    {"path": "webhooks.json",      "kind": "happy",   "covers": ["webhook registrations", "one-time secret on create", "active flag"]},
+    {"path": "analytics.json",     "kind": "happy",   "covers": ["governance totals", "signatures", "violations", "compliance block", "usage block"]},
+    {"path": "audit.json",         "kind": "happy",   "covers": ["audit log entries forming a hash chain (prev_hash -> hash)", "decision enum allow/block/hold"]},
+    {"path": "compliance.json",    "kind": "happy",   "covers": ["MGI compliance score 200-900", "per-framework coverage (GDPR, EU AI Act, DORA)"]},
+    {"path": "errors/404.json",    "kind": "error",   "covers": ["NotFoundError corpus"]},
+    {"path": "errors/401.json",    "kind": "error",   "covers": ["AuthError corpus (invalid_*_credential)"]},
+    {"path": "errors/403.json",    "kind": "error",   "covers": ["AuthError corpus (invalid_credential_type, delegation_escalation)"]},
+    {"path": "errors/409.json",    "kind": "error",   "covers": ["ConflictError corpus (invalid_transition, agent_not_active, delegation_depth_exceeded)"]},
+    {"path": "errors/422.json",    "kind": "error",   "covers": ["ValidationError corpus (validation_error, ssrf_rejected, invalid_revocation_type, invalid_target_id, missing_reason, incomplete_attestation)"]},
+    {"path": "errors/429.json",    "kind": "error",   "covers": ["RateLimitError corpus (capability_quota_exceeded, partner_rate_limited) + Retry-After"]}
+  ],
+  "canonical_error_codes": [
+    "customer_not_found",
+    "agent_not_found",
+    "capability_not_found",
+    "webhook_not_found",
+    "revocation_target_not_found",
+    "session_not_found",
+    "envelope_not_found",
+    "missing_authorization",
+    "invalid_partner_credential",
+    "invalid_customer_credential",
+    "invalid_capability_credential",
+    "internal_service_unauthorized",
+    "invalid_credential_type",
+    "delegation_escalation",
+    "invalid_transition",
+    "agent_not_active",
+    "delegation_depth_exceeded",
+    "idempotency_key_conflict",
+    "validation_error",
+    "ssrf_rejected",
+    "invalid_revocation_type",
+    "invalid_target_id",
+    "missing_reason",
+    "incomplete_attestation",
+    "capability_quota_exceeded",
+    "partner_rate_limited",
+    "webhooks_per_customer_exceeded",
+    "not_found"
+  ],
+  "canonical_status_enum": [
+    "pending",
+    "sandbox_active",
+    "production_active",
+    "suspended",
+    "deactivated"
+  ],
+  "canonical_decision_enum": [
+    "allow",
+    "block",
+    "hold"
+  ],
+  "canonical_token_type_enum": [
+    "partner",
+    "customer",
+    "capability"
+  ]
+}

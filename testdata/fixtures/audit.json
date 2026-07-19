@@ -1,0 +1,77 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-audit.json",
+  "kind": "happy",
+  "entity": "audit",
+  "description": "Sample audit-log entries forming a hash chain. Each entry's prev_hash equals the prior entry's hash (the linkage the client-side verifyChain helper validates). decision enum values are byte-identical across SDKs: allow, block, hold.",
+  "org_id": "33333333-3333-4333-8333-333333333301",
+  "entries": [
+    {
+      "event_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "action": "onboarding.customer.created",
+      "subject": "partner:prt_A",
+      "decision": "allow",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "1111111111111111111111111111111111111111111111111111111111111111",
+      "ts": "2026-07-19T12:00:00Z",
+      "parameters": {"customer_id": "33333333-3333-4333-8333-333333333301"}
+    },
+    {
+      "event_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa02",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "action": "envelope.signed",
+      "subject": "agent:77777777-7777-4777-8777-777777777701",
+      "decision": "allow",
+      "prev_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+      "hash": "2222222222222222222222222222222222222222222222222222222222222222",
+      "ts": "2026-07-19T12:01:00Z",
+      "parameters": {"envelope_id": "88888888-8888-4888-8888-888888888801"}
+    },
+    {
+      "event_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa03",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "action": "envelope.blocked",
+      "subject": "policy:pii_filter",
+      "decision": "block",
+      "prev_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+      "hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "ts": "2026-07-19T12:02:00Z",
+      "parameters": {"envelope_id": "88888888-8888-4888-8888-888888888802", "policy": "pii_filter"}
+    },
+    {
+      "event_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa04",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "action": "partner.session.minted",
+      "subject": "partner:prt_A",
+      "decision": "allow",
+      "prev_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+      "hash": "4444444444444444444444444444444444444444444444444444444444444444",
+      "ts": "2026-07-19T12:03:00Z",
+      "parameters": {"ttl_seconds": 900, "session_id": "55555555-5555-4555-8555-555555555501"}
+    },
+    {
+      "event_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa05",
+      "org_id": "33333333-3333-4333-8333-333333333301",
+      "action": "capability.revoked",
+      "subject": "customer:cust_1",
+      "decision": "hold",
+      "prev_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+      "hash": "5555555555555555555555555555555555555555555555555555555555555555",
+      "ts": "2026-07-19T12:04:00Z",
+      "parameters": {"token_id": "66666666-6666-4666-8666-666666666601", "affected_total": 2}
+    }
+  ],
+  "merkle_root": "9999999999999999999999999999999999999999999999999999999999999999",
+  "chain_invariants": [
+    "entries[0].prev_hash is the all-zero anchor",
+    "for i >= 1: entries[i].prev_hash == entries[i-1].hash",
+    "verifyChain(ordered_entries) -> {valid: true}",
+    "verifyChain(shuffled_entries) -> {valid: false, broken_at: <first divergence>}"
+  ],
+  "pagination": {
+    "limit_default": 50,
+    "limit_max": 200,
+    "cursor_encoding": "opaque-base64url",
+    "sample_cursor": "Y3Vyc29yOmFhYWFhYWFhLWFhYWEtNGFhYS04YWFhLWFhYWFhYWFhYWFhYWEwNQ=="
+  }
+}

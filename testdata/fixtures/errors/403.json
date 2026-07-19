@@ -1,0 +1,37 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-error-403.json",
+  "kind": "error",
+  "status": 403,
+  "error_class": "AuthError",
+  "description": "Canonical AuthError (403) corpus. HTTP 403 surfaces as the SDK's AuthError. Covers wrong-prefix credentials on persona-gated routes (invalid_credential_type) and capability delegation escalation (delegation_escalation). NOTE: cross-PARTNER access to a customer returns 404 (NOT 403) per the existence-non-leak convention - see errors/404.json.",
+  "cases": [
+    {
+      "name": "invalid_credential_type",
+      "code": "invalid_credential_type",
+      "message": "A partner (prt_) credential is required.",
+      "request_id": "req-403-custype-01",
+      "trigger": "customers.list() with a cust_ (or cap_/moss_live_) Bearer on a prt_-only route.",
+      "extra_fields": {
+        "expected_prefix": "prt_",
+        "received_prefix": "cust_"
+      },
+      "parity_note": "The message names the EXPECTED prefix. The same code string is used for cust_-on-prt_-route, cap_-on-prt_-route, and prt_-on-cust_-route (the message names the expected prefix for that route)."
+    },
+    {
+      "name": "delegation_escalation",
+      "code": "delegation_escalation",
+      "message": "The requested delegation escalates the parent capability (a permission, resource_scope, execution_limit, or classification_ceiling above the parent).",
+      "request_id": "req-403-deleg-01",
+      "trigger": "delegate({parentToken, attenuate: {execution_limit: parent.execution_limit + 1}}).",
+      "extra_fields": {
+        "escalation_kind": "execution_limit"
+      },
+      "parity_note": "Rejected BEFORE any child token is signed. The parent token remains usable afterward (no side effect)."
+    }
+  ],
+  "sdk_mapping": {
+    "http_status": 403,
+    "error_class": "AuthError",
+    "distinct_from": ["NotFoundError", "ValidationError", "RateLimitError", "ServerError"]
+  }
+}

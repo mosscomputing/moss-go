@@ -1,0 +1,54 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-error-401.json",
+  "kind": "error",
+  "status": 401,
+  "error_class": "AuthError",
+  "description": "Canonical AuthError (401) corpus. HTTP 401 surfaces as the SDK's AuthError. Covers missing Bearer, and invalid/expired/revoked/unknown credentials resolved by their prefix-specific resolver. The raw token is never echoed in the body.",
+  "cases": [
+    {
+      "name": "missing_authorization",
+      "code": "missing_authorization",
+      "message": "Authorization header is required.",
+      "request_id": "req-401-missing-01",
+      "trigger": "Any partner/customer route with no Authorization header.",
+      "extra_fields": {}
+    },
+    {
+      "name": "invalid_partner_credential",
+      "code": "invalid_partner_credential",
+      "message": "The partner credential is invalid, revoked, or expired.",
+      "request_id": "req-401-prt-01",
+      "trigger": "customers.list() with a well-formed prt_ + random suffix.",
+      "extra_fields": {}
+    },
+    {
+      "name": "invalid_customer_credential",
+      "code": "invalid_customer_credential",
+      "message": "The customer credential is invalid, revoked, or expired.",
+      "request_id": "req-401-cust-01",
+      "trigger": "A cust_ endpoint called with an expired/revoked cust_ session token (e.g. after revokeSession or after expires_at passes).",
+      "extra_fields": {}
+    },
+    {
+      "name": "invalid_capability_credential",
+      "code": "invalid_capability_credential",
+      "message": "The capability credential is invalid, revoked, or expired.",
+      "request_id": "req-401-cap-01",
+      "trigger": "delegate() with a missing/malformed/revoked/expired parent cap_ Bearer.",
+      "extra_fields": {}
+    },
+    {
+      "name": "internal_service_unauthorized",
+      "code": "internal_service_unauthorized",
+      "message": "Internal service authentication failed.",
+      "request_id": "req-401-int-01",
+      "trigger": "POST /v1/tokens/introspect with Bearer 'internal:<wrong-key>:<email>'.",
+      "extra_fields": {}
+    }
+  ],
+  "sdk_mapping": {
+    "http_status": 401,
+    "error_class": "AuthError",
+    "distinct_from": ["NotFoundError", "ValidationError", "RateLimitError", "ServerError"]
+  }
+}

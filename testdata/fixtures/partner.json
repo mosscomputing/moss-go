@@ -1,0 +1,42 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-partner.json",
+  "kind": "happy",
+  "entity": "partner",
+  "description": "Sample partner organizations used as the root actor for partner-surface parity tests. Two partners (PARTNER_A, PARTNER_B) provide cross-partner isolation cases.",
+  "partners": [
+    {
+      "partner_id": "11111111-1111-4111-8111-111111111111",
+      "name": "PARTNER_A",
+      "slug": "partner-a",
+      "status": "active",
+      "token_prefix": "prt_A",
+      "seed_token": "prt_A_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "settings": {
+        "theme": "default",
+        "region": "us-central1"
+      },
+      "limits": {
+        "customers": 1000,
+        "webhooks_per_customer": 25
+      }
+    },
+    {
+      "partner_id": "22222222-2222-4222-8222-222222222222",
+      "name": "PARTNER_B",
+      "slug": "partner-b",
+      "status": "active",
+      "token_prefix": "prt_B",
+      "seed_token": "prt_B_SEED",
+      "created_at": "2026-07-19T12:00:00Z",
+      "settings": {
+        "theme": "default",
+        "region": "eu-west1"
+      },
+      "limits": {
+        "customers": 500,
+        "webhooks_per_customer": 10
+      }
+    }
+  ]
+}

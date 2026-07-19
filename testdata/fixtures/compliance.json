@@ -1,0 +1,46 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-compliance.json",
+  "kind": "happy",
+  "entity": "compliance",
+  "description": "Sample compliance score + report metadata for CUST1. The MGI score is in the [200, 900] range. The compliance-report PDF carries the %%MOSS-SIGNATURE-V1 marker and an embedded QR pointing at the offline verify page; no public backend verify route is used.",
+  "customer_id": "33333333-3333-4333-8333-333333333301",
+  "score": {
+    "mgi": 742,
+    "band": "advanced",
+    "range_min": 200,
+    "range_max": 900,
+    "updated_at": "2026-07-19T12:00:00Z",
+    "frameworks": {
+      "GDPR": {"coverage": 0.86, "status": "active", "next_review": "2026-10-19T00:00:00Z"},
+      "EU_AI_ACT": {"coverage": 0.71, "status": "active", "next_review": "2026-09-19T00:00:00Z"},
+      "DORA": {"coverage": 0.55, "status": "active", "next_review": "2026-11-19T00:00:00Z"}
+    }
+  },
+  "report": {
+    "content_type": "application/pdf",
+    "magic_bytes_hex": "25504446",
+    "magic_bytes_ascii": "%PDF-",
+    "signature_marker_begin": "%%MOSS-SIGNATURE-V1-BEGIN",
+    "signature_marker_end": "%%MOSS-SIGNATURE-V1-END",
+    "signature_algorithm": "ML-DSA-44",
+    "key_id": "moss-signing-key-v1",
+    "qr_target_url": "https://dev-console.mosscomputing.com/verify/cust_1_SEED",
+    "well_known_keys_endpoint": "/.well-known/moss-keys/{key_id}",
+    "byte_length": 18432,
+    "issued_at": "2026-07-19T12:00:00Z"
+  },
+  "client_side_verify": {
+    "helper": "compliance.verifyReport(pdfBytes)",
+    "good_pdf_returns": {"valid": true, "key_id": "moss-signing-key-v1", "signed_at": "2026-07-19T12:00:00Z"},
+    "tampered_pdf_returns": {"valid": false},
+    "unsigned_pdf_returns": {"valid": false},
+    "network_calls": ["/.well-known/moss-keys/{key_id}"],
+    "no_backend_verify_route": true
+  },
+  "fail_closed": {
+    "description": "When the ML-DSA-44 signer is unconfigured (get_signer() returns None), the endpoint returns HTTP 500 and emits NO PDF body. It NEVER returns an unsigned compliance artifact (see errors/422.json is NOT applicable; this is a 5xx ServerError, see typed-error hierarchy).",
+    "unconfigured_signer_status": 500,
+    "unconfigured_signer_body": null,
+    "sdk_error_class": "ServerError"
+  }
+}

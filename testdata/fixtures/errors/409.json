@@ -1,0 +1,56 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-error-409.json",
+  "kind": "error",
+  "status": 409,
+  "error_class": "ConflictError",
+  "description": "Canonical ConflictError (409) corpus. HTTP 409 surfaces as the SDK's ConflictError (a ServerError subclass in the parity taxonomy when no dedicated ConflictError exists; the parity contract pins the Go reference which exposes a dedicated ConflictError). Covers invalid lifecycle transitions, inactive-agent capability issuance, delegation depth ceiling, and idempotency-key conflicts.",
+  "cases": [
+    {
+      "name": "invalid_transition",
+      "code": "invalid_transition",
+      "message": "The requested lifecycle transition is invalid for the current status.",
+      "request_id": "req-409-trans-01",
+      "trigger": "customers.promote(suspended_customer) or customers.reactivate(already_active_customer) or customers.suspend(deactivated_customer).",
+      "extra_fields": {
+        "current_status": "suspended",
+        "requested_transition": "promote"
+      },
+      "parity_note": "The body includes current_status so the SDK can surface it. A follow-up customers.get shows the status unchanged."
+    },
+    {
+      "name": "agent_not_active",
+      "code": "agent_not_active",
+      "message": "The agent is not active; capability issuance requires an active agent.",
+      "request_id": "req-409-agent-01",
+      "trigger": "capabilities.issue({agent_id: suspended_agent}) with cust_1.",
+      "extra_fields": {
+        "agent_status": "suspended"
+      }
+    },
+    {
+      "name": "delegation_depth_exceeded",
+      "code": "delegation_depth_exceeded",
+      "message": "The parent capability has no remaining delegation depth; a child cannot be minted.",
+      "request_id": "req-409-depth-01",
+      "trigger": "delegate() from a parent whose max_delegation_depth is 0.",
+      "extra_fields": {
+        "parent_max_delegation_depth": 0
+      }
+    },
+    {
+      "name": "idempotency_key_conflict",
+      "code": "idempotency_key_conflict",
+      "message": "An Idempotency-Key was replayed with a different request body.",
+      "request_id": "req-409-idem-01",
+      "trigger": "customers.create({name:'A'}, Idempotency-Key: K) then customers.create({name:'B'}, Idempotency-Key: K).",
+      "extra_fields": {
+        "idempotency_key": "idem-key-01"
+      }
+    }
+  ],
+  "sdk_mapping": {
+    "http_status": 409,
+    "error_class": "ConflictError",
+    "parity_taxonomy_note": "Where a language has no dedicated ConflictError, the SDK surfaces a ServerError subclass whose .status == 409 and .code == the canonical string. The Go reference exposes ConflictError; TS/Python mirror it."
+  }
+}

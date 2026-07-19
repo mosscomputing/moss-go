@@ -1,0 +1,78 @@
+{
+  "$schema": "https://mosscomputing.com/schemas/m3-fixtures-error-404.json",
+  "kind": "error",
+  "status": 404,
+  "error_class": "NotFoundError",
+  "description": "Canonical NotFoundError corpus. HTTP 404 surfaces as the SDK's NotFoundError (a distinct class from AuthError/ValidationError/RateLimitError/ServerError). Cross-partner access returns 404 (NEVER 403) to avoid leaking customer existence (existence-non-leak convention). The uniform 404 handler may rewrite the body to {\"error\":\"not_found\",...} app-wide; tests should accept either the route-level code or the uniform 'not_found'.",
+  "cases": [
+    {
+      "name": "customer_not_found",
+      "code": "customer_not_found",
+      "message": "No customer found for the given id under the calling partner.",
+      "request_id": "req-404-customer-01",
+      "trigger": "customers.get(random_uuid) or customers.get(foreign_customer_id) with prt_A",
+      "extra_fields": {},
+      "parity_note": "Cross-partner access (PARTNER_B accessing PARTNER_A's customer) also returns 404 customer_not_found, never 403."
+    },
+    {
+      "name": "agent_not_found",
+      "code": "agent_not_found",
+      "message": "No active agent found for the given id under the calling org.",
+      "request_id": "req-404-agent-01",
+      "trigger": "capabilities.issue({agent_id: random_uuid}) with cust_1",
+      "extra_fields": {}
+    },
+    {
+      "name": "capability_not_found",
+      "code": "capability_not_found",
+      "message": "No capability token found for the given id owned by the caller's org.",
+      "request_id": "req-404-cap-01",
+      "trigger": "capabilities.get(random_uuid) with cust_1",
+      "extra_fields": {},
+      "parity_note": "No cross-org capability detail is leaked in the body."
+    },
+    {
+      "name": "webhook_not_found",
+      "code": "webhook_not_found",
+      "message": "No webhook found for the given id under the calling org.",
+      "request_id": "req-404-wh-01",
+      "trigger": "webhooks.get(random_uuid) with cust_1",
+      "extra_fields": {}
+    },
+    {
+      "name": "revocation_target_not_found",
+      "code": "revocation_target_not_found",
+      "message": "No revocable target found for the given target_id under the calling org.",
+      "request_id": "req-404-rev-01",
+      "trigger": "revoke({type:'capability_token', target_id: random_uuid}) with cust_1",
+      "extra_fields": {},
+      "parity_note": "Revoke of an already-revoked target is idempotent (success, no re-cascade); only an UNKNOWN/cross-org target is a 404."
+    },
+    {
+      "name": "session_not_found",
+      "code": "session_not_found",
+      "message": "No active session found for the given customer/session id under the calling partner.",
+      "request_id": "req-404-sess-01",
+      "trigger": "revokeSession(customer_id, {session_id: unknown}) with prt_A",
+      "extra_fields": {}
+    },
+    {
+      "name": "envelope_not_found",
+      "code": "envelope_not_found",
+      "message": "No execution envelope found for the given id under the calling org.",
+      "request_id": "req-404-env-01",
+      "trigger": "envelopes.get(random_uuid) with cust_1",
+      "extra_fields": {}
+    }
+  ],
+  "uniform_handler_alias": {
+    "code": "not_found",
+    "message": "Not found.",
+    "note": "The app-wide uniform 404 handler may rewrite route-level 404 bodies to this shape. Tests should accept EITHER the route-level code (e.g. customer_not_found) OR the uniform 'not_found'. The HTTP status (404) and the existence-non-leak guarantee are always preserved."
+  },
+  "sdk_mapping": {
+    "http_status": 404,
+    "error_class": "NotFoundError",
+    "distinct_from": ["AuthError", "ValidationError", "RateLimitError", "ServerError"]
+  }
+}
